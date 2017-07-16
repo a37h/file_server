@@ -10,6 +10,20 @@ class CSession {
 private:
     boost::asio::ip::tcp::socket socket_;
     char buffer_data[buffer_max_size];
+
+    std::string parse_filename(char *buffer_data)
+    {
+        std::string str(buffer_data);
+        std::size_t found1 = str.find("/get/");
+        if (found1 != std::string::npos) {
+            std::size_t  found2 = str.find(" ", found1);
+            if (found2 != std::string::npos) {
+                str = str.substr(found1+5, found2-found1-5);
+                return str;
+            }
+        }
+        return "";
+    }
 public:
     // Constructor which takes single io_service pointer.
     CSession(boost::asio::io_service &io_service): socket_(io_service) {}
@@ -28,10 +42,11 @@ public:
     // Function which is called after io_service read from socket
     void handle_read(const boost::system::error_code &error, size_t bytes_transferred) {
         if (!error) {
-            std::cout << buffer_data;
+            std::string filename = parse_filename(buffer_data);
+
             boost::asio::async_write(
                     socket_,
-                    boost::asio::buffer(buffer_data, bytes_transferred), // This goes into socket
+                    boost::asio::buffer(filename, bytes_transferred), // This goes into socket
                     boost::bind(&CSession::handle_write, this, boost::asio::placeholders::error)
             );
         }
