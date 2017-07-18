@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
@@ -25,12 +26,31 @@ private:
     }
     // creating a response for client
     std::string get_response() {
-        std::string filename = parse_filename(buffer_data);
-        std::string response_body = "<html>\n<body>\n<h1>Im just a useless page!</h1>\n</body>\n</html>";
-        std::string response_header = "HTTP/1.1 200 OK\nContent-Length:" + std::to_string(response_body.length()) +
-                                      "\nContent-Type: application/octet-stream\nContent-Disposition: attachment; "
-                                              "filename=\"" + filename + "\"\nConnection: Closed\n\n";
-        return response_header + response_body;
+        std::string response_body, response_header, filename = parse_filename(buffer_data);
+        std::ifstream file(filename);
+        if (file.good())
+        {
+            std::stringstream strStream;
+            strStream << file.rdbuf();
+            response_body = strStream.str();
+
+            response_header = "HTTP/1.1 200 OK\nContent-Length:" + std::to_string(response_body.length()) +
+                                          "\nContent-Type: application/octet-stream\nContent-Disposition: attachment; "
+                                                  "filename=\"" + filename + "\"\nConnection: close\n\n";
+            std::cout << "\n\nLast response header:_\n\n" << response_header;
+            return response_header + response_body;
+        }
+        else
+        {
+            response_body = "<!DOCTYPE html>\n<html>\n<head>\n<title>404. File not found</title>\n</head>\n"
+                    "<body>\n<center><h1>Error 404</h1>\n<p>File \""+ filename + "\" not found</p></center>\n</body>\n</html>";
+            response_header = "HTTP/1.1 404 Not Found\nContent-Length:" + std::to_string(response_body.length()) +
+                                          "\nContent-Type: text/html\nConnection: close\n\n";
+            std::cout << "\n\nLast response header:_\n\n" << response_header;
+            return response_header + response_body;
+        }
+        // need
+
     }
 public:
     // Constructor which takes single io_service pointer.
@@ -51,11 +71,10 @@ public:
     void handle_read(const boost::system::error_code &error, size_t bytes_transferred) {
         if (!error) {
             std::string response = get_response();
-            std::cout << "\n\nLast response:_\n\n" << response;
 
             boost::asio::async_write(
                     socket_,
-                    boost::asio::buffer(response, bytes_transferred), // This goes into socket
+                    boost::asio::buffer(response, response.length()), // This goes into socket
                     boost::bind(&CSession::handle_write, this, boost::asio::placeholders::error)
             );
         }
