@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <iostream>
+#include <string>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 
@@ -44,9 +45,19 @@ public:
         if (!error) {
             std::string filename = parse_filename(buffer_data);
 
+            std::string response_body = "<html>\n<body>\n<h1>Im just a useless page!</h1>\n</body>\n</html>";
+
+            std::string response_header = "HTTP/1.1 200 OK\nContent-Length:" + std::to_string(response_body.length()) +
+                                          "\nContent-Type: application/octet-stream\nContent-Disposition: attachment; "
+                                          "filename=\"" + filename + "\"\nConnection: Closed\n\n";
+
+            std::string response = response_header + response_body;
+
+            std::cout << "\n\nLast response:_\n\n" << response;
+
             boost::asio::async_write(
                     socket_,
-                    boost::asio::buffer(filename, bytes_transferred), // This goes into socket
+                    boost::asio::buffer(response, bytes_transferred), // This goes into socket
                     boost::bind(&CSession::handle_write, this, boost::asio::placeholders::error)
             );
         }
