@@ -6,14 +6,12 @@
 
 #define buffer_max_size 1024
 
-// Класс отвечающий за одно соединение с сервером
 class CSession {
 private:
     boost::asio::ip::tcp::socket socket_;
     char buffer_data[buffer_max_size];
-
-    std::string parse_filename(char *buffer_data)
-    {
+    // parse filename from request
+    std::string parse_filename(char *buffer_data) {
         std::string str(buffer_data);
         std::size_t found1 = str.find("/get/");
         if (found1 != std::string::npos) {
@@ -24,6 +22,15 @@ private:
             }
         }
         return "";
+    }
+    // creating a response for client
+    std::string get_response() {
+        std::string filename = parse_filename(buffer_data);
+        std::string response_body = "<html>\n<body>\n<h1>Im just a useless page!</h1>\n</body>\n</html>";
+        std::string response_header = "HTTP/1.1 200 OK\nContent-Length:" + std::to_string(response_body.length()) +
+                                      "\nContent-Type: application/octet-stream\nContent-Disposition: attachment; "
+                                              "filename=\"" + filename + "\"\nConnection: Closed\n\n";
+        return response_header + response_body;
     }
 public:
     // Constructor which takes single io_service pointer.
@@ -43,16 +50,7 @@ public:
     // Function which is called after io_service read from socket
     void handle_read(const boost::system::error_code &error, size_t bytes_transferred) {
         if (!error) {
-            std::string filename = parse_filename(buffer_data);
-
-            std::string response_body = "<html>\n<body>\n<h1>Im just a useless page!</h1>\n</body>\n</html>";
-
-            std::string response_header = "HTTP/1.1 200 OK\nContent-Length:" + std::to_string(response_body.length()) +
-                                          "\nContent-Type: application/octet-stream\nContent-Disposition: attachment; "
-                                          "filename=\"" + filename + "\"\nConnection: Closed\n\n";
-
-            std::string response = response_header + response_body;
-
+            std::string response = get_response();
             std::cout << "\n\nLast response:_\n\n" << response;
 
             boost::asio::async_write(
