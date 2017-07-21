@@ -9,10 +9,13 @@
 
 class CSession {
 private:
+    // Storage of server response inside of an object so async_write would pass more than 65536 bytes of data
     std::string response;
+    // Socket which is connected with our client
     boost::asio::ip::tcp::socket socket_;
+    // buffer_data which holds user request
     char buffer_data[buffer_max_size];
-    // parse filename from request
+    // function for parsing filename from request
     std::string parse_filename(char *buffer_data) {
         std::string str(buffer_data);
         std::size_t found1 = str.find("/get/");
@@ -25,35 +28,41 @@ private:
         }
         return "";
     }
-    // creating a response for client
+    // function for creating a response for client
     std::string get_response() {
         std::string response_body, response_header, filename = parse_filename(buffer_data);
         std::ifstream file(filename);
-        if (file.good())
-        {
-            std::stringstream strStream;
-            strStream << file.rdbuf();
-            std::ofstream testout(filename + ".out");
-            response_body = strStream.str();
-            testout << response_body;
+        if (filename != "") {
+            if (file.good()) {
+                std::stringstream strStream;
+                strStream << file.rdbuf();
+                std::ofstream testout(filename + ".out");
+                response_body = strStream.str();
+                testout << response_body;
 
-            response_header = "HTTP/1.1 200 OK\nContent-Length:" + std::to_string(response_body.length()) +
-                                          "\nContent-Type: application/octet-stream\nContent-Disposition: attachment; "
-                                                  "filename=\"" + filename + "\"\nConnection: close\n\n";
+                response_header = "HTTP/1.1 200 OK\nContent-Length:" + std::to_string(response_body.length()) +
+                                  "\nContent-Type: application/octet-stream\nContent-Disposition: attachment; "
+                                          "filename=\"" + filename + "\"\nConnection: close\n\n";
+                std::cout << "\n\nLast response header:_\n\n" << response_header;
+                return response_header + response_body;
+            } else {
+                response_body = "<!DOCTYPE html>\n<html>\n<head>\n<title>404. File not found</title>\n</head>\n"
+                                        "<body>\n<center><h1>Error 404</h1>\n<p>File \"" + filename +
+                                "\" not found</p></center>\n</body>\n</html>";
+                response_header = "HTTP/1.1 404 Not Found\nContent-Length:" + std::to_string(response_body.length()) +
+                                  "\nContent-Type: text/html\nConnection: close\n\n";
+                std::cout << "\n\nLast response header:_\n\n" << response_header;
+                return response_header + response_body;
+            }
+        } else {
+            response_body = "<!DOCTYPE html><html><head><title>Main page</title></head>"
+                    "<body><center><h1>Error 400</h1><p>Bad request.<br>Use <b><i>/get/filename</i></b> "
+                    "after a server<br>address to get the file called <b><i>filename</i></b></p></center></body></html>";
+            response_header = "HTTP/1.1 400 Bad request\nContent-Length:" + std::to_string(response_body.length()) +
+                              "\nContent-Type: text/html\nConnection: close\n\n";
             std::cout << "\n\nLast response header:_\n\n" << response_header;
             return response_header + response_body;
         }
-        else
-        {
-            response_body = "<!DOCTYPE html>\n<html>\n<head>\n<title>404. File not found</title>\n</head>\n"
-                    "<body>\n<center><h1>Error 404</h1>\n<p>File \""+ filename + "\" not found</p></center>\n</body>\n</html>";
-            response_header = "HTTP/1.1 404 Not Found\nContent-Length:" + std::to_string(response_body.length()) +
-                                          "\nContent-Type: text/html\nConnection: close\n\n";
-            std::cout << "\n\nLast response header:_\n\n" << response_header;
-            return response_header + response_body;
-        }
-        // need
-
     }
 public:
     // Constructor which takes single io_service pointer.
