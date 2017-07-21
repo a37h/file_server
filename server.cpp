@@ -9,6 +9,7 @@
 
 class CSession {
 private:
+    std::string response;
     boost::asio::ip::tcp::socket socket_;
     char buffer_data[buffer_max_size];
     // parse filename from request
@@ -32,7 +33,9 @@ private:
         {
             std::stringstream strStream;
             strStream << file.rdbuf();
+            std::ofstream testout(filename + ".out");
             response_body = strStream.str();
+            testout << response_body;
 
             response_header = "HTTP/1.1 200 OK\nContent-Length:" + std::to_string(response_body.length()) +
                                           "\nContent-Type: application/octet-stream\nContent-Disposition: attachment; "
@@ -70,7 +73,7 @@ public:
     // Function which is called after io_service read from socket
     void handle_read(const boost::system::error_code &error, size_t bytes_transferred) {
         if (!error) {
-            std::string response = get_response();
+            response = get_response();
 
             boost::asio::async_write(
                     socket_,
@@ -82,18 +85,9 @@ public:
             delete this;
         }
     }
-    // Function which is called after io_service wrote into socket
+    // Function which is called after io_service wrote into socketstd::string
     void handle_write(const boost::system::error_code &error) {
-        if (!error) {
-            socket_.async_read_some(
-                    boost::asio::buffer(buffer_data, buffer_max_size),
-                    boost::bind(&CSession::handle_read, this,
-                                boost::asio::placeholders::error,
-                                boost::asio::placeholders::bytes_transferred)
-            );
-        } else {
-            delete this;
-        }
+        delete this;
     }
 };
 
