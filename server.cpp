@@ -36,14 +36,9 @@ private:
             if (file.good()) {
                 std::stringstream strStream;
                 strStream << file.rdbuf();
-                std::ofstream testout(filename + ".out");
-                response_body = strStream.str();
-                testout << response_body;
-
                 response_header = "HTTP/1.1 200 OK\nContent-Length:" + std::to_string(response_body.length()) +
                                   "\nContent-Type: application/octet-stream\nContent-Disposition: attachment; "
                                           "filename=\"" + filename + "\"\nConnection: close\n\n";
-                std::cout << "\n\nLast response header:_\n\n" << response_header;
                 return response_header + response_body;
             } else {
                 response_body = "<!DOCTYPE html>\n<html>\n<head>\n<title>404. File not found</title>\n</head>\n"
@@ -51,7 +46,6 @@ private:
                                 "\" not found</p></center>\n</body>\n</html>";
                 response_header = "HTTP/1.1 404 Not Found\nContent-Length:" + std::to_string(response_body.length()) +
                                   "\nContent-Type: text/html\nConnection: close\n\n";
-                std::cout << "\n\nLast response header:_\n\n" << response_header;
                 return response_header + response_body;
             }
         } else {
@@ -60,7 +54,6 @@ private:
                     "after a server<br>address to get the file called <b><i>filename</i></b></p></center></body></html>";
             response_header = "HTTP/1.1 400 Bad request\nContent-Length:" + std::to_string(response_body.length()) +
                               "\nContent-Type: text/html\nConnection: close\n\n";
-            std::cout << "\n\nLast response header:_\n\n" << response_header;
             return response_header + response_body;
         }
     }
@@ -133,14 +126,13 @@ void CServer_start(int argc, char **argv)
 {
     int port = 0;
     if (argc < 2) {
-        std::cout << "\nEnter a port to start server on: ";
+        std::cout << "Enter a port to start server on: ";
         std::cin >> port;
     }
     else
     {
         port = atoi(argv[1]);
     }
-    std::cout << "\nServer log:\n\n";
     boost::asio::io_service io_service;
     CServer s(io_service, port);
     io_service.run();
