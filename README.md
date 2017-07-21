@@ -12,4 +12,5 @@
 
 # Компиляция
 
+Запуском баш-скрипта "./make" либо строка:
 g++ -std=c++11 server.cpp -o server -lboost_system
